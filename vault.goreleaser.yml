@@ -1,0 +1,25 @@
+builds:
+  -
+    id: vault_arm6
+
+    ldflags: -w -X github.com/hashicorp/vault/version.GitCommit={{ .ShortCommit }} -X github.com/hashicorp/vault/version.BuildDate={{ .Date }}
+   
+    goos:
+      - linux
+    goarch:
+      - arm
+    goarm:
+      - 6
+    env:
+      - CGO_ENABLED=0
+  -
+    id: vault_aarch64
+
+    ldflags: -w -X github.com/hashicorp/vault/version.GitCommit={{ .ShortCommit }} -X github.com/hashicorp/vault/version.BuildDate={{ .Date }}
+
+    goos:
+      - linux
+    goarch:
+      - arm64
+    env:
+      - CGO_ENABLED=0

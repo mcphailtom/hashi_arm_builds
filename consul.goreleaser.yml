@@ -1,0 +1,25 @@
+builds:
+  -
+    id: consul_arm6
+
+    ldflags: -w -X github.com/hashicorp/consul/version.GitCommit={{ .ShortCommit }} -X github.com/hashicorp/consul/version.BuildDate={{ .Date }}
+   
+    goos:
+      - linux
+    goarch:
+      - arm
+    goarm:
+      - 6
+    env:
+      - CGO_ENABLED=0
+  -
+    id: consul_aarch64
+
+    ldflags: -w -X github.com/hashicorp/consul/version.GitCommit={{ .ShortCommit }} -X github.com/hashicorp/consul/version.BuildDate={{ .Date }}
+
+    goos:
+      - linux
+    goarch:
+      - arm64
+    env:
+      - CGO_ENABLED=0
