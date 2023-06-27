@@ -1,0 +1,118 @@
+name: Build ARM Releases
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * 0'
+  push:
+    branches:
+      - 'main'
+
+jobs:
+  check-hashi-versions:
+    runs-on: ubuntu-latest
+    outputs:
+      consul_release_version: ${{ steps.consul_release_version.outputs.release }}
+      nomad_release_version: ${{ steps.nomad_release_version.outputs.release }}
+      vault_release_version: ${{ steps.vault_release_version.outputs.release }}
+      consul_release_description: ${{ steps.consul_release_version.outputs.description }}
+      nomad_release_description: ${{ steps.nomad_release_version.outputs.description }}
+      vault_release_description: ${{ steps.vault_release_version.outputs.description }}
+      consul_release_check: ${{ steps.consul_release_version.outcome }}
+      nomad_release_check: ${{ steps.nomad_release_version.outcome }}
+      vault_release_check: ${{ steps.vault_release_version.outcome }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: consul_release_version
+        id: consul_release_version
+        uses: pozetroninc/github-action-get-latest-release@master
+        with:
+          repository: hashicorp/consul
+          excludes: "prerelease, draft"
+
+      - name: nomad_release_version
+        id: nomad_release_version
+        uses: pozetroninc/github-action-get-latest-release@master
+        with:
+          repository: hashicorp/nomad
+          excludes: "prerelease, draft"
+
+      - name: vault_release_version
+        id: vault_release_version
+        uses: pozetroninc/github-action-get-latest-release@master
+        with:
+          repository: hashicorp/vault
+          excludes: "prerelease, draft"
+
+      - name: Cache release versions
+        id: cache-release-versions
+        uses: actions/cache@v3
+        with:
+          path: ${{ github.workspace }}/previous_releases.txt
+          key: hashi-release-versions
+
+      - name: read_previous_releases
+        id: read_previous_releases
+        run: |
+          ${{ github.workspace }}/.github/scripts/setoutputs.sh ${{ github.workspace }}/previous_releases.txt consul nomad vault
+
+      - name: consul_release_check
+        id: consul_release_check
+        run: |
+          ${{ github.workspace }}/.github/scripts/islater.sh ${{ steps.read_previous_releases.outputs.consul }} ${{ steps.consul_release_version.outputs.release }}
+
+      - name: nomad_release_check
+        id: nomad_release_check
+        run: |
+          ${{ github.workspace }}/.github/scripts/islater.sh ${{ steps.read_previous_releases.outputs.nomad }} ${{ steps.nomad_release_version.outputs.release }}
+
+      - name: vault_release_check
+        id: vault_release_check
+        run: |
+          ${{ github.workspace }}/.github/scripts/islater.sh ${{ steps.read_previous_releases.outputs.vault }} ${{ steps.vault_release_version.outputs.release }}
+
+      - name: Save current release versions
+        id: save_current_release_versions
+        run: |
+          ${{ github.workspace }}/.github/scripts/savekeyvals.sh ${{ github.workspace }}/previous_releases.txt \
+          consul=${{ steps.consul_release_version.outputs.release }} \
+          nomad=${{ steps.nomad_release_version.outputs.release }} \
+          vault=${{ steps.vault_release_version.outputs.release }}
+
+  build-consul-arm:
+    uses: ./.github/workflows/docker-build-arm.yaml
+    needs: check-hashi-versions
+    if : ${{ needs.check-hashi-versions.outputs.consul_release_check == 'success' }}
+    with:
+      os: ubuntu-latest
+      product: consul
+      go_version: 1.20.5
+      release_version: ${{ needs.check-hashi-versions.outputs.consul_release_version }}
+      release_description: ${{ needs.check-hashi-versions.outputs.consul_release_description }}
+    secrets: inherit
+
+  build-nomad-arm:
+    uses: ./.github/workflows/docker-build-arm.yaml
+    needs: check-hashi-versions
+    if: ${{ needs.check-hashi-versions.outputs.nomad_release_check == 'success' }}
+    with:
+      os: ubuntu-latest
+      product: nomad
+      go_version: 1.20.5
+      release_version: ${{ needs.check-hashi-versions.outputs.nomad_release_version }}
+      release_description: ${{ needs.check-hashi-versions.outputs.nomad_release_description }}
+    secrets: inherit
+
+  build-vault-arm:
+    uses: ./.github/workflows/docker-build-arm.yaml
+    needs: check-hashi-versions
+    if: ${{ needs.check-hashi-versions.outputs.vault_release_check == 'success' }}
+    with:
+      os: ubuntu-latest
+      product: vault
+      go_version: 1.20.5
+      release_version: ${{ needs.check-hashi-versions.outputs.vault_release_version }}
+      release_description: ${{ needs.check-hashi-versions.outputs.vault_release_description }}
+    secrets: inherit

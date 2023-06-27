@@ -1,0 +1,86 @@
+name: Docker Build ARM
+
+on:
+  workflow_call:
+    inputs:
+      os:
+        required: true
+        type: string
+      product:
+        required: true
+        type: string
+      go_version:
+        required: true
+        type: string
+      release_version:
+        required: true
+        type: string
+      release_description:
+        required: true
+        type: string
+
+env:
+  PRODUCT_NAME: ${{ inputs.product }}
+  IMAGE_NAME: "mcphailtom/${{ inputs.product }}_arm_builds"
+  REPO_PATH: "https://github.com/hashicorp/${{ inputs.product }}.git"
+
+jobs:
+  docker-build-artifacts:
+    runs-on: ${{ inputs.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          flavor: |
+            latest=auto
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=ref,event=branch
+            type=sha,format=long
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Docker build and load
+        id: docker_build
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: "${{ github.workspace }}/${{ inputs.product }}.Dockerfile"
+          load: true
+          push: false
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          platforms: linux/amd64
+          build-args: |
+            GO_VERSION=${{ inputs.go_version }}
+            RELEASE_VERSION=${{ inputs.release_version }}
+
+      - name: Create a temporary container and copy the build artifacts
+        run: |
+          mkdir ${{ github.workspace }}/artifacts && \
+          docker create --name temp_container ${{ env.IMAGE_NAME }}:sha-${{ github.sha }} && \
+          docker cp temp_container:/root/src/${{ env.PRODUCT_NAME }}/${{ env.PRODUCT_NAME }}_aarch64_linux_arm64.tar.gz ${{ github.workspace }}/artifacts/ && \
+          docker cp temp_container:/root/src/${{ env.PRODUCT_NAME }}/${{ env.PRODUCT_NAME }}_arm6_linux_arm_6.tar.gz ${{ github.workspace }}/artifacts/ && \
+          docker rm -f temp_container
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.PRODUCT_NAME }}-artifacts
+          path: ${{ github.workspace }}/artifacts/
+
+      - name: Create Release
+        id: create_release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: "${{ env.PRODUCT_NAME }}-arm-${{ env.RELEASE_VERSION }}"
+          commit: "${{ github.sha }}"
+          body: ${{ inputs.release_description }}
+          prerelease: false
+          artifacts: "./artifacts/${{ env.PRODUCT_NAME }}_aarch64_linux_arm64.tar.gz,./artifacts/${{ env.PRODUCT_NAME }}_arm6_linux_arm_6.tar.gz"
