@@ -23,7 +23,7 @@ env:
   PRODUCT_NAME: ${{ inputs.product }}
   IMAGE_NAME: "mcphailtom/${{ inputs.product }}_arm_builds"
   REPO_PATH: "https://github.com/hashicorp/${{ inputs.product }}.git"
-  ARM_BINARY: "${{ inputs.product }}_${{ inputs.release_version }}_linux_arm_6.tar.gz"
+  ARM_BINARY: "${{ inputs.product }}_${{ inputs.release_version }}_linux_armv6.tar.gz"
   AARCH64_BINARY: "${{ inputs.product }}_${{ inputs.release_version }}_linux_arm64.tar.gz"
 
 jobs:
