@@ -2,6 +2,12 @@ name: Build ARM Releases
 
 on:
   workflow_dispatch:
+    inputs:
+      force_build:
+        description: Force a release build
+        required: true
+        type: boolean
+        default: false
   schedule:
     - cron: '0 0 * * 0'
   push:
@@ -18,9 +24,9 @@ jobs:
       consul_release_description: ${{ steps.consul_release_version.outputs.description }}
       nomad_release_description: ${{ steps.nomad_release_version.outputs.description }}
       vault_release_description: ${{ steps.vault_release_version.outputs.description }}
-      consul_release_check: ${{ steps.consul_release_version.outcome }}
-      nomad_release_check: ${{ steps.nomad_release_version.outcome }}
-      vault_release_check: ${{ steps.vault_release_version.outcome }}
+      consul_release_check: ${{ steps.consul_release_check.outcome }}
+      nomad_release_check: ${{ steps.nomad_release_check.outcome }}
+      vault_release_check: ${{ steps.vault_release_check.outcome }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -60,15 +66,18 @@ jobs:
 
       - name: consul_release_check
         id: consul_release_check
+        continue-on-error: true
         run: |
           ${{ github.workspace }}/.github/scripts/islater.sh ${{ steps.read_previous_releases.outputs.consul }} ${{ steps.consul_release_version.outputs.release }}
 
       - name: nomad_release_check
         id: nomad_release_check
+        continue-on-error: true
         run: |
           ${{ github.workspace }}/.github/scripts/islater.sh ${{ steps.read_previous_releases.outputs.nomad }} ${{ steps.nomad_release_version.outputs.release }}
 
       - name: vault_release_check
+        continue-on-error: true
         id: vault_release_check
         run: |
           ${{ github.workspace }}/.github/scripts/islater.sh ${{ steps.read_previous_releases.outputs.vault }} ${{ steps.vault_release_version.outputs.release }}
@@ -84,7 +93,7 @@ jobs:
   build-consul-arm:
     uses: ./.github/workflows/docker-build-arm.yaml
     needs: check-hashi-versions
-    if : ${{ needs.check-hashi-versions.outputs.consul_release_check == 'success' }}
+    if : ${{ needs.check-hashi-versions.outputs.consul_release_check == 'success' || inputs.force_build }}
     with:
       os: ubuntu-latest
       product: consul
@@ -96,7 +105,7 @@ jobs:
   build-nomad-arm:
     uses: ./.github/workflows/docker-build-arm.yaml
     needs: check-hashi-versions
-    if: ${{ needs.check-hashi-versions.outputs.nomad_release_check == 'success' }}
+    if: ${{ needs.check-hashi-versions.outputs.nomad_release_check == 'success' || inputs.force_build }}
     with:
       os: ubuntu-latest
       product: nomad
@@ -108,7 +117,7 @@ jobs:
   build-vault-arm:
     uses: ./.github/workflows/docker-build-arm.yaml
     needs: check-hashi-versions
-    if: ${{ needs.check-hashi-versions.outputs.vault_release_check == 'success' }}
+    if: ${{ needs.check-hashi-versions.outputs.vault_release_check == 'success' || inputs.force_build }}
     with:
       os: ubuntu-latest
       product: vault

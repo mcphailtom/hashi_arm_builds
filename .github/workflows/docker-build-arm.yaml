@@ -23,6 +23,8 @@ env:
   PRODUCT_NAME: ${{ inputs.product }}
   IMAGE_NAME: "mcphailtom/${{ inputs.product }}_arm_builds"
   REPO_PATH: "https://github.com/hashicorp/${{ inputs.product }}.git"
+  ARM_BINARY: "${{ inputs.product }}_${{ inputs.release_version }}_linux_arm_6.tar.gz"
+  AARCH64_BINARY: "${{ inputs.product }}_${{ inputs.release_version }}_linux_arm64.tar.gz"
 
 jobs:
   docker-build-artifacts:
@@ -65,10 +67,10 @@ jobs:
         run: |
           mkdir ${{ github.workspace }}/artifacts && \
           docker create --name temp_container ${{ env.IMAGE_NAME }}:sha-${{ github.sha }} && \
-          docker cp temp_container:/root/src/${{ env.PRODUCT_NAME }}/dist/${{ env.PRODUCT_NAME }}_aarch64_linux_arm64.tar.gz ${{ github.workspace }}/artifacts/ && \
-          docker cp temp_container:/root/src/${{ env.PRODUCT_NAME }}/dist/${{ env.PRODUCT_NAME }}_arm6_linux_arm_6.tar.gz ${{ github.workspace }}/artifacts/ && \
+          docker cp temp_container:/root/src/${{ env.PRODUCT_NAME }}/dist/${{ env.ARM_BINARY }} ${{ github.workspace }}/artifacts/ && \
+          docker cp temp_container:/root/src/${{ env.PRODUCT_NAME }}/dist/${{ env.AARCH64_BINARY }} ${{ github.workspace }}/artifacts/ && \
           docker rm -f temp_container
-
+          
       - name: Upload build artifacts
         uses: actions/upload-artifact@v3
         with:
@@ -83,4 +85,4 @@ jobs:
           commit: "${{ github.sha }}"
           body: ${{ inputs.release_description }}
           prerelease: false
-          artifacts: "./artifacts/${{ env.PRODUCT_NAME }}_aarch64_linux_arm64.tar.gz,./artifacts/${{ env.PRODUCT_NAME }}_arm6_linux_arm_6.tar.gz"
+          artifacts: "./artifacts/${{ env.AARCH64_BINARY }},./artifacts/${{ env.ARM_BINARY }}"
