@@ -92,6 +92,8 @@ jobs:
 
   build-consul-arm:
     uses: ./.github/workflows/docker-build-arm.yaml
+    permissions:
+      contents: write
     needs: check-hashi-versions
     if : ${{ needs.check-hashi-versions.outputs.consul_release_check == 'success' || inputs.force_build }}
     with:
@@ -104,6 +106,8 @@ jobs:
 
   build-nomad-arm:
     uses: ./.github/workflows/docker-build-arm.yaml
+    permissions:
+      contents: write
     needs: check-hashi-versions
     if: ${{ needs.check-hashi-versions.outputs.nomad_release_check == 'success' || inputs.force_build }}
     with:
@@ -116,6 +120,8 @@ jobs:
 
   build-vault-arm:
     uses: ./.github/workflows/docker-build-arm.yaml
+    permissions:
+      contents: write
     needs: check-hashi-versions
     if: ${{ needs.check-hashi-versions.outputs.vault_release_check == 'success' || inputs.force_build }}
     with:
