@@ -22,6 +22,8 @@ on:
 jobs:
   docker-build-artifacts:
     runs-on: ${{ inputs.os }}
+    permissions:
+      contents: write
     env:
       IMAGE_NAME: "mcphailtom/${{ inputs.product }}_arm_builds"
     steps:
