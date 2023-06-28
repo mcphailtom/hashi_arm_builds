@@ -1,4 +1,4 @@
-# Hashicorp ARM builds
+# HashiCorp ARM builds
 As the name suggests this is some automation to produce ARMv6 and ARMv8 (AARCH64) builds for hashicorp products, 
 specifically:
 
