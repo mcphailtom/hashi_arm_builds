@@ -65,8 +65,8 @@ jobs:
         run: |
           mkdir ${{ github.workspace }}/artifacts && \
           docker create --name temp_container ${{ env.IMAGE_NAME }}:sha-${{ github.sha }} && \
-          docker cp temp_container:/root/src/${{ env.PRODUCT_NAME }}/${{ env.PRODUCT_NAME }}_aarch64_linux_arm64.tar.gz ${{ github.workspace }}/artifacts/ && \
-          docker cp temp_container:/root/src/${{ env.PRODUCT_NAME }}/${{ env.PRODUCT_NAME }}_arm6_linux_arm_6.tar.gz ${{ github.workspace }}/artifacts/ && \
+          docker cp temp_container:/root/src/${{ env.PRODUCT_NAME }}/dist/${{ env.PRODUCT_NAME }}_aarch64_linux_arm64.tar.gz ${{ github.workspace }}/artifacts/ && \
+          docker cp temp_container:/root/src/${{ env.PRODUCT_NAME }}/dist/${{ env.PRODUCT_NAME }}_arm6_linux_arm_6.tar.gz ${{ github.workspace }}/artifacts/ && \
           docker rm -f temp_container
 
       - name: Upload build artifacts
