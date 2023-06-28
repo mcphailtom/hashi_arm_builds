@@ -19,19 +19,21 @@ on:
         required: true
         type: string
 
-env:
-  PRODUCT_NAME: ${{ inputs.product }}
-  IMAGE_NAME: "mcphailtom/${{ inputs.product }}_arm_builds"
-  REPO_PATH: "https://github.com/hashicorp/${{ inputs.product }}.git"
-  ARM_BINARY: "${{ inputs.product }}_${{ inputs.release_version }}_linux_armv6.tar.gz"
-  AARCH64_BINARY: "${{ inputs.product }}_${{ inputs.release_version }}_linux_arm64.tar.gz"
-
 jobs:
   docker-build-artifacts:
     runs-on: ${{ inputs.os }}
+    env:
+      IMAGE_NAME: "mcphailtom/${{ inputs.product }}_arm_builds"
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+
+      - name: Extract Semver from release version
+        id: extract_semver
+        run: |
+            release_version=${{ inputs.release_version }}
+            version=${release_version#v}
+            echo "version=${version}" >> "$GITHUB_OUTPUT"
 
       - name: Docker meta
         id: meta
@@ -64,24 +66,31 @@ jobs:
             RELEASE_VERSION=${{ inputs.release_version }}
 
       - name: Create a temporary container and copy the build artifacts
+        id: copy_build_artifacts
+        env:
+          ARM_BINARY: "${{ inputs.product }}_${{ steps.extract_semver.outputs.version }}_linux_armv6.tar.gz"
+          AARCH64_BINARY: "${{ inputs.product }}_${{ steps.extract_semver.outputs.version }}_linux_arm64.tar.gz"
         run: |
           mkdir ${{ github.workspace }}/artifacts && \
           docker create --name temp_container ${{ env.IMAGE_NAME }}:sha-${{ github.sha }} && \
-          docker cp temp_container:/root/src/${{ env.PRODUCT_NAME }}/dist/${{ env.ARM_BINARY }} ${{ github.workspace }}/artifacts/ && \
-          docker cp temp_container:/root/src/${{ env.PRODUCT_NAME }}/dist/${{ env.AARCH64_BINARY }} ${{ github.workspace }}/artifacts/ && \
+          docker cp temp_container:/root/src/${{ inputs.product }}/dist/${{ env.ARM_BINARY }} ${{ github.workspace }}/artifacts/ && \
+          docker cp temp_container:/root/src/${{ inputs.product }}/dist/${{ env.AARCH64_BINARY }} ${{ github.workspace }}/artifacts/ && \
           docker rm -f temp_container
           
       - name: Upload build artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ env.PRODUCT_NAME }}-artifacts
+          name: ${{ inputs.product }}-artifacts
           path: ${{ github.workspace }}/artifacts/
 
       - name: Create Release
         id: create_release
+        env:
+          ARM_BINARY: "${{ inputs.product }}_${{ steps.extract_semver.outputs.version }}_linux_armv6.tar.gz"
+          AARCH64_BINARY: "${{ inputs.product }}_${{ steps.extract_semver.outputs.version }}_linux_arm64.tar.gz"
         uses: ncipollo/release-action@v1
         with:
-          tag: "${{ env.PRODUCT_NAME }}-arm-${{ env.RELEASE_VERSION }}"
+          tag: "${{ inputs.product }}-arm-${{ inputs.release_version }}"
           commit: "${{ github.sha }}"
           body: ${{ inputs.release_description }}
           prerelease: false
